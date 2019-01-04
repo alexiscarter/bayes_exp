@@ -1,0 +1,51 @@
+
+    model{
+    #1A Priors beta and Gamma
+    for(i in 1:Kc) {  beta[i]  ~ dnorm(0, 0.0001)}
+    for(i in 1:Kb)  { gamma[i] ~ dnorm(0, 0.0001)}
+
+    #1B Priors for r parameter of gamma distribution
+    r~ dunif(0,5)
+    
+    #1B Priors random effect
+    for(i in 1:Nre){
+    a1[i] ~ dnorm(0, tau1_Block)
+    }
+    
+    #1C Priors random effect
+    for(i in 1:Nre){
+    a2[i] ~ dnorm(0, tau2_Block)
+    }
+    
+    #1D Diffuse uniform prior for sigma_Block
+    tau1_Block<-1/(sigma1_Block*sigma1_Block)
+    sigma1_Block ~ dunif(0,100)
+    
+    #1D Diffuse uniform prior for sigma_Block
+    tau2_Block<-1/(sigma2_Block*sigma2_Block)
+    sigma2_Block ~ dunif(0,100)
+    
+    #2 likelihood ( zero trick)
+    C <- 1000
+    for( i in 1:N){
+    Zeros[i] ~ dpois(-ll[i] + C)
+    z[i] <- step(Y[i] - 0.0001)
+    l1[i] <- (1 - z[i]) * log(1-Pi[i])
+    l2[i] <- z[i] * ( log(Pi[i]) - loggam(r) + r*log(r/mu[i])+
+    (r-1)*log(Y[i]) - (Y[i] * r)/mu[i] )
+    
+    ll[i]<- l1[i] + l2[i]
+    
+    log(mu[i]) <- inprod( beta[], Xc[i,]) + a1[Block[i]]
+    logit(Pi[i]) <- inprod( gamma[], Xb[i,]) + a2[Block[i]]
+    }
+    
+    #3 Discrepancy measures
+    for(i in 1:N){
+    ExpY[i] <- Pi[i] * mu[i]
+    VarY[i] <- (Pi[i] * r + Pi[i] - Pi[i] *
+    Pi[i]*r) * (mu[i]+mu[i]/r)
+    
+    PRes[i] <- (Y[i] - ExpY[i])/ sqrt(VarY[i])
+    }
+    }

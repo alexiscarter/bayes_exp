@@ -1,0 +1,59 @@
+
+model{
+#1A. Priors regression parameters count part and binary part
+                       for (j in 1:Kc) { 
+                       beta.mean.prior[j] <- (1 -  Ind.c[j]) * beta.pseudo[j] + Ind.c[j] * 0
+                       beta.tau.prior[j]  <- (1 -  Ind.c[j]) * taubeta[j] + Ind.c[j] * 0.0001
+                       beta[j]     ~ dnorm(beta.mean.prior[j], beta.tau.prior[j])
+                       Ind.c[j]    ~ dbern(Pincl.c)
+                       theta.c[j] <- Ind.c[j] * beta[j]
+                       }
+                       
+                       for (j in 1:Kb) { 
+                       gamma.mean.prior[j] <- (1 -  Ind.b[j]) * gamma.pseudo[j] + Ind.b[j] * 0
+                       gamma.tau.prior[j]  <- (1 -  Ind.b[j]) * taugamma[j] + Ind.b[j] * 0.0001
+                       gamma[j]    ~ dnorm(gamma.mean.prior[j], gamma.tau.prior[j])    	
+                       Ind.b[j]    ~ dbern(Pincl.b)
+                       theta.b[j] <- Ind.b[j] * gamma[j]
+                       }
+                       
+                       Pincl.c ~ dunif(0, 1)
+                       Pincl.b ~ dunif(0, 1)
+                       
+                       # 1B. Priors for random intercepts landscape
+                       for (i in 1:Nre) {a1[i] ~ dnorm(0, tau1) } 
+                       for (i in 1:Nre) {a2[i] ~ dnorm(0, tau2) } 
+
+                       #1C Priors for r parameter of gamma distribution
+                       r~ dunif(0,5)
+                       
+                       # 1D. Priors for variances for random intercepts
+                       sigma1_Block ~ dunif(0.001, 5)
+                       sigma2_Block ~ dunif(0.001, 5)
+                       tau1  <- 1 / (sigma1_Block*sigma1_Block)
+                       tau2  <- 1 / (sigma2_Block *sigma2_Block)
+                       
+                       #2 likelihood ( zero trick)
+                       C <- 1000
+                       for( i in 1:N){
+                       Zeros[i] ~ dpois(-ll[i] + C)
+                       z[i] <- step(Y[i] - 0.0001)
+                       l1[i] <- (1 - z[i]) * log(1-Pi[i])
+                       l2[i] <- z[i] * ( log(Pi[i]) - loggam(r) + r*log(r/mu[i])+
+                       (r-1)*log(Y[i]) - (Y[i] * r)/mu[i] )
+                       
+                       ll[i]<- l1[i] + l2[i]
+                       
+                       log(mu[i]) <- inprod( beta[], Xc[i,]) + a1[Block[i]]
+                       logit(Pi[i]) <- inprod( gamma[], Xb[i,]) + a2[Block[i]]
+                       }
+                       
+                       #3 Discrepancy measures
+                       for(i in 1:N){
+                       ExpY[i] <- Pi[i] * mu[i]
+                       VarY[i] <- (Pi[i] * r + Pi[i] - Pi[i] *
+                       Pi[i]*r) * (mu[i]+mu[i]/r)
+                       
+                       PRes[i] <- (Y[i] - ExpY[i])/ sqrt(VarY[i])
+                       }
+                       }
