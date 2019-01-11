@@ -12,6 +12,7 @@ library(tidyverse)
 library(rjags)
 library(R2jags)
 library(lattice) # using in the MyBUGSChains function
+library(ggpubr)
 
 load("trait_as.rdata")
 
@@ -138,7 +139,7 @@ ir.semi.info <- jags( data        = JAGS.data_full,
                       n.burnin    = 4000,
                       n.iter      = 5000)
 
-ir.semi.info2 <- update(ir.semi.info, n.iter = 500000, n.thin = 10)
+ir.semi.info2 <- update(ir.semi.info, n.iter = 10000, n.thin = 10) # number of iterations should be higher for final run, 100000 for example
 out.ir <-ir.semi.info2$BUGSoutput
 
 ## check if the mixing is good ####
@@ -147,7 +148,7 @@ MyNames<- c(
   paste(c(colnames(Xb), "sigma2_Block") , "Bern" , sep = " "),
   "r Gamma")
 
-MyBUGSChains(out.ir, # run MCMCSupportHighstatV4.R
+MyBUGSChains(out.ir, # /!\/!\/!\ before run MCMCSupportHighstatV4.R
              c(uNames("beta",Kc), "sigma1_Block",
                uNames("gamma",Kb), "sigma2_Block",
                "r"),
@@ -173,7 +174,7 @@ ExpY <-out.ir$mean$ExpY
 
 ## calculate de dispersion of the model ####
 D<- sum(E^2)/(nrow(trait_as_ir) + (ncol(Xc)+ ncol(Xb)))
-D #0.1735022
+D #0.1734623
 
 ## Model validation of the Hurdle model ####
 theme_set(theme_bw())
@@ -212,7 +213,7 @@ model_val
 
 ## get the R2 of the observed value ~ the expected value
 tt<-lm(ExpY~trait_as_ir$total.w)
-summary(tt)$adj.r.squared #0.2398678
+summary(tt)$adj.r.squared #0.2401204
 
 ## sketch the model fit
 MyData <- expand.grid(Treatment = levels(trait_as_ir$treatment), Forest = levels(trait_as_ir$forest))
@@ -230,7 +231,7 @@ GetCIs <- function(x) {
   OUT <- matrix(nrow = nrow(x), ncol = 4) 
   for(i in 1:nrow(x)){
     xi <- x[i,]	
-    OUT[i,3:4] <- quantile(xi, probs = c(0.15, 0.85))
+    OUT[i,3:4] <- quantile(xi, probs = c(0.15, 0.85)) # 70% confidence interval
     OUT[i,1] <- mean(xi)
     OUT[i,2] <- sd(xi)
   }
