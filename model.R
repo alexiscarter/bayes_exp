@@ -256,3 +256,9 @@ Hurdle_O<- ggplot() +
   facet_grid(~Forest)
 Hurdle_O
 
+## Calculate AIC
+nrow(trait_as_ir)*(log(2*pi)+1+log((sum(E^2)/nrow(trait_as_ir))))+((length(L)+1)*2)
+#250.9275 with interaction
+#262.887 without interaction
+#293.0674 without random effects
+
